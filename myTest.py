@@ -111,6 +111,35 @@ def get_cov_stat():
         cov_stat_dump(cov_stat)
     except:
         pass
+    
+def get_uncovered_lines():
+    try:
+        # Load the coverage data
+        with open("./coverage/coverage-final.json", "r") as f:
+            data = json.load(f)
+
+        uncovered_by_file = {}
+
+        for file_path, file_data in data.items():
+            statement_map = file_data.get("statementMap", {})
+            statement_hits = file_data.get("s", {})
+            uncovered_lines = []
+
+            for stmt_id, hit_count in statement_hits.items():
+                if hit_count == 0:
+                    loc = statement_map.get(stmt_id)
+                    if loc:
+                        start_line = loc["start"]["line"]
+                        uncovered_lines.append(start_line)
+
+            if uncovered_lines:
+                uncovered_by_file[file_path] = sorted(set(uncovered_lines))
+
+        # Print the results
+        for file_path, lines in uncovered_by_file.items():
+            print(f"\n{file_path}:\n  Uncovered lines: {', '.join(map(str, lines))}")
+    except:
+        pass
 
 
 
@@ -157,6 +186,7 @@ def test(param_dict):
     zip_test_results()
 
     run_coverage_command(get_command(param_dict, "Coverage command"))
+    get_uncovered_lines()
     get_cov_stat()
     run_pre_and_post_command(get_command(param_dict, "Post-command"))
 

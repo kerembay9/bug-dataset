@@ -3,21 +3,22 @@ import myVersion
 import os
 import subprocess as sp
 import sys
+import myTask
 
 def checkout(param_dict):
     repository = get_project_repository(param_dict)
-    clone_repo(repository, param_dict["output"])
-    
-    checkout_cmd = None
-    if myVersion.is_buggy(param_dict["version"]):
-        checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]+"^")
-    elif myVersion.is_fixed(param_dict["version"]):
-        checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]) + "-full"
-    elif myVersion.is_fixed_only_test_change(param_dict["version"]):
-        checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]) + "-test"
-    else:
-        exit()
-    sp.call(checkout_cmd, shell=True)
+    if not myTask.is_test(param_dict["task"]):
+        clone_repo(repository, param_dict["output"])
+        checkout_cmd = None
+        if myVersion.is_buggy(param_dict["version"]):
+            checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]+"^")
+        elif myVersion.is_fixed(param_dict["version"]):
+            checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]) + "-full"
+        elif myVersion.is_fixed_only_test_change(param_dict["version"]):
+            checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]) + "-test"
+        else:
+            exit()
+        sp.call(checkout_cmd, shell=True)
 
 
 def get_project_repository(param_dict):
@@ -32,7 +33,7 @@ def get_project_repository(param_dict):
 
 def clone_repo(project_repo, folder):
     if os.path.isdir(folder):
-        rm_cmd = "rm -R "+str(folder)
+        rm_cmd = "sudo rm -rf "+str(folder)
         sp.call(rm_cmd, shell=True)
     os.makedirs(folder)
 

@@ -7,8 +7,9 @@ import myTask
 
 def checkout(param_dict):
     repository = get_project_repository(param_dict)
+    folder = param_dict["output"]
     if not myTask.is_test(param_dict["task"]):
-        clone_repo(repository, param_dict["output"])
+        clone_repo(repository, folder)
         checkout_cmd = None
         if myVersion.is_buggy(param_dict["version"]):
             checkout_cmd = "git checkout tags/Bug-" + str(param_dict["bug-ID"]+"^")
@@ -19,6 +20,9 @@ def checkout(param_dict):
         else:
             exit()
         sp.call(checkout_cmd, shell=True)
+    else:
+        os.chdir(folder)
+        os.chdir( os.listdir( "./" )[0] )
 
 
 def get_project_repository(param_dict):
@@ -33,7 +37,7 @@ def get_project_repository(param_dict):
 
 def clone_repo(project_repo, folder):
     if os.path.isdir(folder):
-        rm_cmd = "sudo rm -rf "+str(folder)
+        rm_cmd = "rm -rf "+str(folder)
         sp.call(rm_cmd, shell=True)
     os.makedirs(folder)
 

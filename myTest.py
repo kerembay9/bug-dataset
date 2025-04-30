@@ -122,7 +122,12 @@ def run_pre_and_post_command(pre_and_post_command):
 
 
 def run_test_command(test_command):
-    sp.call(str(test_command)+" > ./test_results.json", shell=True)
+    process = sp.Popen(str(test_command) + " > ./test_results.json 2> ./test_error.log", shell=True)
+    process.communicate()
+    if process.returncode != 0:
+        with open("./test_error.log", "r") as error_log:
+            print("Error occurred during test execution:")
+            print(error_log.read())
 
 
 def run_coverage_command(coverage_command):

@@ -3,6 +3,7 @@ import json
 import myGit
 import os
 import subprocess as sp
+from pathlib import Path
 
 #================= get commands =======================
 
@@ -112,35 +113,58 @@ def get_cov_stat():
     except:
         pass
     
+
 def get_uncovered_lines():
-    try:
-        # Load the coverage data
-        with open("./coverage/coverage-final.json", "r") as f:
-            data = json.load(f)
+    # Load the coverage report
+    with open("./coverage/coverage-final.json", "r") as f:
+        coverage_data = json.load(f)
 
-        uncovered_by_file = {}
+    prompts = []
 
-        for file_path, file_data in data.items():
-            statement_map = file_data.get("statementMap", {})
-            statement_hits = file_data.get("s", {})
-            uncovered_lines = []
+    # Build prompts from uncovered lines
+    for file_path, file_data in coverage_data.items():
+        statement_map = file_data.get("statementMap", {})
+        statement_hits = file_data.get("s", {})
+        uncovered_line_nums = []
 
-            for stmt_id, hit_count in statement_hits.items():
-                if hit_count == 0:
-                    loc = statement_map.get(stmt_id)
-                    if loc:
-                        start_line = loc["start"]["line"]
-                        uncovered_lines.append(start_line)
+        for stmt_id, hit_count in statement_hits.items():
+            if hit_count == 0:
+                loc = statement_map.get(stmt_id)
+                if loc:
+                    start_line = loc["start"]["line"]
+                    uncovered_line_nums.append(start_line)
 
-            if uncovered_lines:
-                uncovered_by_file[file_path] = sorted(set(uncovered_lines))
+        if uncovered_line_nums:
+            try:
+                with open(file_path, "r") as code_file:
+                    lines = code_file.readlines()
 
-        # Print the results
-        for file_path, lines in uncovered_by_file.items():
-            print(f"\n{file_path}:\n  Uncovered lines: {', '.join(map(str, lines))}")
-    except:
-        pass
+                uncovered_lines = []
+                for line_num in sorted(set(uncovered_line_nums)):
+                    # Adjust index since list is 0-based and line numbers are 1-based
+                    if 1 <= line_num <= len(lines):
+                        uncovered_lines.append({
+                            "line_num": line_num,
+                            "content": lines[line_num - 1].rstrip('\n')
+                        })
 
+                file_contents = "".join(lines)
+
+                prompts.append({
+                    "file_path": file_path,
+                    "uncovered_lines": uncovered_lines,
+                    "prompt": (
+                        f"Create me test files that will include especially the following lines for code coverage testing:\n"
+                        f"{[entry['content'] for entry in uncovered_lines]}\n\n"
+                        f"Here is the file:\n{file_contents}"
+                    )
+                })
+            except Exception as e:
+                print(f"Skipping {file_path}: {e}")
+
+    # Write to prompts.json
+    with open("prompts.json", "w") as out_file:
+        json.dump(prompts, out_file, indent=2)
 
 
 # ======================= run commands =============
